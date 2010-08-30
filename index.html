@@ -1,0 +1,103 @@
+<html>
+<head>
+
+<style>
+body {
+	margin: 0px;
+}
+</style>
+
+<script src="processing-0.9.7.min.js"></script>
+<script src="init.js"></script>
+<script src="client/socket.io.js"></script>
+<script src="json.js"></script>
+
+<script>
+var queue = new Array();
+var myr = 0.0;
+var myg = 0.0;
+var myb = 0.0;
+
+io.setPath( 'client/' );
+
+var socket = new io.Socket('localhost', {port: 8000});
+
+if(socket.connect()){
+  socket.on('message', function(data){
+  	data = JSON.parse(data);
+  	
+  	if ( data['mode'] == "init" )
+  	{
+  		myr = data['red'] ? data['red'] : 0.0;
+  		myg = data['green'] ? data['green'] : 0.0;
+  		myb = data['blue'] ? data['blue'] : 0.0;
+  	}
+  	else
+  	{
+  		queue.push( {px:data['px'], py:data['py'], x:data['x'], y:data['y'], red:data['red'], green:data['green'], blue:data['blue']} );
+  	}
+  });
+};
+</script>
+
+</head>
+<body>
+
+<script type="application/processing">
+	
+	
+	void setup() {
+		size( 800, 600 );
+		frameRate( 120 );
+		background(0);
+		smooth();
+		
+		fill( 0 );
+		stroke( 0 );
+	}
+	
+	void draw() {
+		float px;
+		float py;
+		float x;
+		float y;
+		float r, g, b;
+		
+		if ( queue.length > 0 )
+		{
+			while ( queue.length > 0 )
+			{
+				int end = queue.length-1;
+				px = queue[end].px ? queue[end].px : 0;
+				py = queue[end].py ? queue[end].py : 0;
+				x = queue[end].x ? queue[end].x : 0;
+				y = queue[end].y ? queue[end].y : 0;
+				r = queue[end].red ? queue[end].red : 0;
+				g = queue[end].green ? queue[end].green : 0;
+				b = queue[end].blue ? queue[end].blue : 0;
+				
+				fill(r,g,b);
+				stroke(r,g,b);
+				line( px, py, x, y );
+				
+				queue.pop();
+			}
+		}
+		
+		if ( mousePressed )
+		{
+			px = pmouseX;
+			py = pmouseY;
+			x = mouseX;
+			y = mouseY;
+			fill(myr, myg, myb);
+			stroke(myr, myg, myb);
+			line( px, py, x, y );
+			socket.send(JSON.stringify({mode:"message", px:pmouseX, py:pmouseY, x:mouseX, y:mouseY, red:myr, green:myg, blue:myb}));
+		}
+	}
+</script>
+<canvas width="800" height="600"></canvas>
+
+</body>
+</html>
